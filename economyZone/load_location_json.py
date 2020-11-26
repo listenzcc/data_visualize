@@ -19,7 +19,7 @@ for prov in tqdm(locations):
         frame = frame.append(dict(
             Province=prov,
             City=city,
-            Position=posi
+            Position=[float(e) for e in posi]
         ), ignore_index=True)
 
 # %%
