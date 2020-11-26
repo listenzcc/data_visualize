@@ -4,6 +4,8 @@ import calendar
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
+from . import logger
+
 
 class Date(object):
     # Date object for stamp date string
@@ -16,12 +18,19 @@ class Date(object):
         # interval: option of how long the interval is,
         #           self.next method uses it;
         # config: the local config object.
-        if config.has_section('Environment'):
-            section = config['Environment']
-        else:
+        if isinstance(config, dict):
             section = dict()
+            logger.warning(
+                'Config is not provided, using default initialization.')
+        else:
+            if config.has_section('Environment'):
+                section = config['Environment']
+            else:
+                section = dict()
+                logger.warning(
+                    'Config has no "Environment" section, using default initialization.')
 
-        iD = [int(e) for e in section.get('initData', date).split('-')]
+        iD = [int(e) for e in section.get('initDate', date).split('-')]
         self.date = datetime(iD[0], iD[1], iD[2])
 
         interval = section.get('interval', interval)
@@ -42,9 +51,13 @@ class Date(object):
         self.weekdays = calendar.weekheader(4).split()
         self.monthnames = calendar.month_abbr
 
+        logger.debug('Date initialized as date: {}, interval: {}'.format(self.string(),
+                                                                         self.interval))
+
     def next(self):
         # Move forward as self.interval
         self.date += self.interval
+        logger.debug('Date moved forward as {}'.format(self.interval))
 
     def forward(self, step=None):
         # Move forward as customized [step]
@@ -52,13 +65,15 @@ class Date(object):
             self.next()
         else:
             self.date += step
+            logger.debug('Date moved forward as {}'.format(step))
 
     def string(self):
         # Return the string of current date
         split = dict(
+            stamp=self.date.timestamp(),
             weekday=self.weekdays[self.date.weekday()],
             month=self.monthnames[self.date.month],
             day=self.date.day,
             year=self.date.year,
         )
-        return '{weekday}, {month}, {day}, {year}'.format(**split)
+        return '{stamp}, {weekday}, {month}, {day}, {year}'.format(**split)
