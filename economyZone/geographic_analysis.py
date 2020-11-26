@@ -29,6 +29,17 @@ for i in tqdm(range(num)):
 
 print(matrix)
 
-# -----------------------------------------------------------------------
 sns.heatmap(matrix)
 plt.show()
+
+# -----------------------------------------------------------------------
+# Build shortest global path
+inside = set()
+
+
+def inside_add(id):
+    inside.add(id)
+    matrix[:, id] = np.inf
+
+
+inside_add(0)
