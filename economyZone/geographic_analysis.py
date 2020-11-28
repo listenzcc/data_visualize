@@ -1,8 +1,10 @@
 # File: geographic_analysis.py
 # Aim: Necessary geographic analysis
-# * Compute neighborhood links between cities, using global shortest method.
+# * Compute shortest length graph linking all the cities,
+# * will generate "edge.json", which stores edges of the graph.
 
 # -----------------------------------------------------------------------
+import json
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -51,7 +53,7 @@ class ShortestPathGraph(object):
         # num: number of vertex,
         # remain: remaining of unlinked vertexes,
         # min_path: path dict from linked vertexes to remaining vertexes,
-        # self.edge: Generated graph edges, format is "des: src" refers from [src] to [des]
+        # self.edge: Generated graph edges, format is "dst: src" refers from [src] to [dst]
         num = len(matrix)
         remain = [e for e in range(num)]
         min_path = dict()
@@ -73,66 +75,26 @@ class ShortestPathGraph(object):
         # generate the graph using shortest global length method
         print('Generating shortest path graph')
         for _ in trange(num-1):
-            # Find shortest path from [src] to [des]
-            des_tuple = sorted(min_path.items(), key=lambda x: x[1][0])[0]
-            src = des_tuple[0]
-            des = des_tuple[1][1]
+            # Find shortest path from [src] to [dst]
+            dst_tuple = sorted(min_path.items(), key=lambda x: x[1][0])[0]
+            src = dst_tuple[0]
+            dst = dst_tuple[1][1]
             # Record path
-            self.edge[des] = src
-            remain.remove(des)
+            self.edge[dst] = src
+            remain.remove(dst)
             if len(remain) == 0:
                 break
-            # Update src and insert des in min_path dict
+            # Update src and insert dst in min_path dict
             # _update_min_path(src)
-            _update_min_path(des)
+            # Insert dst
+            _update_min_path(dst)
+            # Re-compute src whose shortest is dst
             for s in min_path:
-                if min_path[s][1] == des:
+                if min_path[s][1] == dst:
                     _update_min_path(s)
 
 
 spg = ShortestPathGraph(matrix)
-spg.generate_path(0)
-print(len(spg.edge))
-
-# -----------------------------------------------------------------------
-# Draw the graph
-
-# Make property DataFrame,
-# geo_frame: Add Longitude and Latitude to the frame,
-#            new frame has columns: Province | City | Position | Lon | Lat
-# edge_frame: DataFrame of lines,
-#             columns: Dst or Src | Name | Lon | Lat | Province
-#                      Dst and Src: the Dst idx of the path
-#                      Name: src or dst
-#                      Province: province name of the dst
-#                      thus, there are 2 records for one path, one for src and another for dst
-geo_frame['Lon'] = geo_frame.Position.map(lambda x: x[0])
-geo_frame['Lat'] = geo_frame.Position.map(lambda x: x[1])
-
-edge_frames = dict()
-for name, iterator in zip(['src', 'dst'],
-                          [spg.edge.keys(), spg.edge.values()]):
-    df = pd.DataFrame(iterator)
-    df.columns = ['Dst']
-    df['Name'] = name
-    for col in ['Lon', 'Lat', 'Province']:
-        df[col] = df['Dst'].map(lambda x: geo_frame[col].loc[x])
-    edge_frames[name] = df
-
-edge_frames['src']['Dst'] = edge_frames['dst']['Dst']
-edge_frames['src']['Province'] = edge_frames['dst']['Province']
-edge_frame = pd.concat([edge_frames['src'], edge_frames['dst']])
-
-# Draw
-# Prepare canvas
-plt.rcParams['font.sans-serif'] = ['SimHei']
-plt.rcParams['axes.unicode_minus'] = False
-fig, ax = plt.subplots(1, 1, figsize=(6, 6))
-# Add vertexes in scatters as city
-sns.scatterplot(data=geo_frame, x='Lon', y='Lat',
-                hue=geo_frame.Province.to_list(), ax=ax)
-# Add edges in lines as road
-sns.lineplot(data=edge_frame, x='Lon', y='Lat',
-             units=edge_frame.Dst.to_list(), estimator=None, ax=ax)
-
-plt.show()
+spg.generate_path(300)
+json.dump(spg.edge, open(beside('edge.json'), 'w'))
+# print(len(spg.edge))
