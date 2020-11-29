@@ -130,4 +130,4 @@ cid = fig.canvas.mpl_connect('button_press_event', onclick)
 cid = fig.canvas.mpl_connect('pick_event', onpick)
 plt.show(block=False)
 
-input('')
+input('Press "Enter" to exit.')
