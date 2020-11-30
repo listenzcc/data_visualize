@@ -4,6 +4,7 @@
 import json
 import pandas as pd
 import pdb
+import plotly.graph_objs as go
 
 from tqdm.auto import tqdm
 
@@ -40,7 +41,7 @@ for prov in tqdm(vertex_frame.Province.unique()):
         Count=len(cities),
         Cities=cities),
         ignore_index=True)
-province_frame = province_frame.set_index('Province')
+province_frame.set_index('Province', drop=False, inplace=True)
 province_frame.index.name = ''
 print(province_frame)
 
@@ -55,3 +56,42 @@ for j in tqdm(edge_frame.index):
 
 vertex_frame['LinksCount'] = vertex_frame.Links.map(len)
 print('\n', vertex_frame)
+
+# --------------------------------------------------------------------------------
+# Display provinces
+trace0 = go.Bar(dict(
+    x=province_frame.Province,
+    y=province_frame.Count,
+    name='City Counting Bar',
+    text=province_frame.Count,
+    marker=dict(
+        opacity=0.5,
+        color='black',
+    ),
+))
+
+trace1 = go.Scatter(dict(
+    x=province_frame.Province,
+    y=province_frame.Count,
+    name='City Counting Line',
+    mode='lines+markers',
+    line=dict(
+        shape='spline',
+        color='gray',
+    ),
+    marker=dict(
+        color=province_frame.Count,
+        colorscale=[[0, 'green'], [0.5, 'orange'], [1.0, 'red']],
+    ),
+))
+
+
+layout = go.Layout(
+    xaxis=dict(title='xaxis', zeroline=False, rangeslider=dict(visible=True)),
+    yaxis=dict(title='yaxis', zeroline=False),
+    title='Title',
+    showlegend=True,
+)
+
+fig = go.Figure(data=[trace0, trace1], layout=layout)
+fig.show()
