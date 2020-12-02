@@ -1,0 +1,12 @@
+div.controller {
+    background-color: bisque;
+    padding: 5px;
+    display: flex;
+    justify-content: left;
+    align-items: center;
+}
+
+div#control-area {
+    margin: 5px;
+    /* width: 600px; */
+}
