@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta name="viewport" content="width=device-width" />
+        <script src="https://d3js.org/d3.v6.min.js"></script>
+        <script src="./localMath.js"></script>
+        <script src="./localMetric.js"></script>
+        <style type="text/css">
+            svg#mainSvg {
+                width: 8in;
+                height: 8in;
+                background-color: antiquewhite;
+            }
+
+            circle.ring {
+                stroke: red;
+                fill: none;
+            }
+        </style>
+    </head>
+
+    <body>
+        <!-- Basic layout -->
+        <h1>Packed circles</h1>
+        <p>It is a demo of drawing packed circles.</p>
+        <ol>
+            <li>The script is based on native JavaScript;</li>
+            <li>The D3 package is used to draw the circles into the svg;</li>
+            <li>
+                The method is to maintain the outline of the current circle
+                package;
+            </li>
+            <li>
+                When new circle is added, it will be placed on the outer side of
+                the outline;
+            </li>
+            <li>The colors' hue values are continues by the order.</li>
+        </ol>
+        <svg id="mainSvg"></svg>
+
+        <!-- Get the size of #mainSvg -->
+        <script type="text/javascript">
+            // Const variables
+            const width = parseInt(d3.select(mainSvg).style("width")),
+                height = parseInt(d3.select(mainSvg).style("height"));
+            console.log(width, height);
+        </script>
+
+        <!-- Set up radius of the circles -->
+        <script type="text/javascript">
+            // Random variables
+            let totalNum = 1000;
+            let rs = [];
+            for (let i = 0; i < totalNum; i++) {
+                rs.push(parseInt(Math.random() * 10 + 5));
+            }
+            console.log(rs);
+        </script>
+
+        <!-- Prepare group into the #mainSvg -->
+        <script type="text/javascript">
+            // Where to draw
+            // Set it to the center of the svg
+            const grp = d3
+                .select(mainSvg)
+                .append("g")
+                .attr(
+                    "transform",
+                    "translate(" + width / 2 + "," + height / 2 + ")"
+                );
+
+            // Draw a rather large circle
+            grp.append("circle")
+                .attr("cx", 0)
+                .attr("cy", 0)
+                .attr("r", 200)
+                .attr("class", "ring");
+
+            // Draw the center node
+            grp.append("circle").attr("cx", 0).attr("cy", 0).attr("r", 2);
+        </script>
+
+        <!-- Draw circles into the group -->
+        <script type="text/javascript">
+            // Startup of the circle collection
+            let ps = [
+                [0, 0, rs[0]],
+                [rs[0] + rs[1], 0, rs[1]],
+            ];
+
+            // Start of the shell collection
+            let shell = [
+                [0, 0, rs[0]],
+                [rs[0] + rs[1], 0, rs[1]],
+            ];
+            shell.from = 0;
+            shell.to = shell.length - 1;
+
+            // Add circles one-by-one
+            // 1. Add the circle to the shell by its first and last circles;
+            // 2. If failed, change the shell and try again until success;
+            // 3. Success means we can add the new circle cutting with the existing two circles in the shell, without conflict with existing circles.
+            let i = ps.length;
+            for (; i < rs.length; ) {
+                // Try to add
+                let np = rightCircle(shell[shell.from], shell[shell.to], rs[i]);
+
+                // If NaN is in the new circle,
+                // it means something goes very wrong.
+                if (isNaN(np[0])) {
+                    console.log("Error: NaN appears, can not continue.");
+                    console.log(i);
+                    break;
+                }
+
+                // Tell if the new circle conflicts with the existing circles
+                let good = true;
+
+                for (let j in ps) {
+                    if (conflict(ps[j], np)) {
+                        good = false;
+                        break;
+                    }
+                }
+
+                // If success, update shell and go-on,
+                // if fails, change shell and try again on the new set
+                if (good) {
+                    ps.push(np);
+                    shell.push(np);
+                    shell = shell.slice(shell.from);
+                    shell.from = 0;
+                    shell.to = shell.length - 1;
+                    i++;
+                } else {
+                    shell.from++;
+                    if (shell.from >= shell.to) {
+                        shell.from = 0;
+                        shell.pop();
+                        shell.to -= 1;
+                    }
+                }
+            }
+
+            // Draw the circles in the group
+            // The color of circles will changed across their index.
+            let n = ps.length;
+            // Color settings
+            let o = 1;
+            let h = Math.random() * 360;
+            let s = 0.5;
+            let l = 0.5;
+
+            // Draw all the packed circles,
+            // the graphs is colored.
+            grp.append("g")
+                .selectAll("circle")
+                .data(ps)
+                .enter()
+                .append("circle")
+                .attr("cx", (d) => d[0])
+                .attr("cy", (d) => d[1])
+                .attr("r", (d) => d[2])
+                .attr("class", "ring")
+                .attr("id", (d, i) => "circle" + i)
+                .style("stroke", (d, i) => {
+                    o = (0.5 * (i + 1)) / n + 0.5;
+                    return "rgba(0, 0, 0, " + o + ")";
+                })
+                .style("fill", (d, i) => {
+                    let _h = h + (i / n) * 360;
+                    o = 0.4;
+                    return d3.hsl(_h, s, l, o).toString();
+                });
+
+            // Draw the shell circles,
+            // the stroke will be red colored.
+            grp.append("g")
+                .selectAll("circle")
+                .data(shell)
+                .enter()
+                .append("circle")
+                .attr("cx", (d) => d[0])
+                .attr("cy", (d) => d[1])
+                .attr("r", (d) => d[2])
+                .attr("class", "ring")
+                .style("stroke", (d, i) => {
+                    return "red";
+                });
+        </script>
+    </body>
+</html>
